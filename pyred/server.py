@@ -9,11 +9,15 @@ import heapq
 import os
 from pathlib import Path
 import atexit
+import logging
 
 
 from .pyred_lock import PyredLock
 
 _server_controller = None 
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class SetEncoder(json.JSONEncoder):
@@ -57,7 +61,7 @@ class Store:
         if not self.backup_file or not self.backup_file.exists():
             return
         
-        print(f"Loading data from {self.backup_file}...")
+        logger.info(f"Loading data from {self.backup_file}...")
         try:
             with open(self.backup_file, 'r', encoding='utf-8') as f:
                 backup_data = json.load(f, object_hook=set_decoder)
@@ -77,10 +81,10 @@ class Store:
             for key in keys_to_expire:
                 self._expire_key(key)
             
-            print(f"Loaded {len(self.data)} keys.")
+            logger.info(f"Loaded {len(self.data)} keys.")
 
         except (json.JSONDecodeError, IOError) as e:
-            print(f"Error loading backup file {self.backup_file}: {e}. Starting fresh.")
+            logger.error(f"Error loading backup file {self.backup_file}: {e}. Starting fresh.")
             self.data, self.expires, self.hq = {}, {}, []
 
     # Method to save data to disk
@@ -97,7 +101,7 @@ class Store:
             def do_write():
                 with open(temp_file, 'w', encoding='utf-8') as f:
                     json.dump(backup_data, f, cls=SetEncoder)
-                print(f"Saving data to {self.backup_file}...")
+                logger.info(f"Saving data to {self.backup_file}...")
                 os.rename(temp_file, self.backup_file)
 
             try:
@@ -106,12 +110,12 @@ class Store:
                     await asyncio.to_thread(do_write)
                 except RuntimeError as e:
                     if "cannot schedule new futures after shutdown" in str(e):
-                        print("[WARN] Event loop shut down, saving data synchronously")
+                        logger.warning("[WARN] Event loop shut down, saving data synchronously")
                         do_write()
                     else:
                         raise
             except Exception as e:
-                print(f"Error during backup: {e}")
+                logger.error(f"Error during backup: {e}")
                 if temp_file.exists():
                     os.remove(temp_file)
 
@@ -236,6 +240,7 @@ class Store:
     async def handle_dbsize(self, data):
         """Handles the 'dbsize' command to get the number of keys."""
         return {"status": "ok", "data": len(self.data)}
+
 
     # --- STRING COMMANDS ---
 
@@ -645,7 +650,7 @@ async def start_and_listen(host: str = 'localhost', port: int = 9876, shutdown_e
     sockets = server.sockets or []
     if sockets:
         bound = sockets[0].getsockname()
-        print(f"Server started on {bound[0]}:{bound[1]}")
+        logger.info(f"Server started on {bound[0]}:{bound[1]}")
 
     
     if shutdown_event is None:
@@ -654,9 +659,9 @@ async def start_and_listen(host: str = 'localhost', port: int = 9876, shutdown_e
     async def serve_and_shutdown():
         async with server:
             await shutdown_event.wait()
-            print("Shutdown signal received.  Saving state and shutting down...")
+            logger.info("Shutdown signal received.  Saving state and shutting down...")
             await store._save_to_disk()
-            print("State saved. Shutting down server.")
+            logger.info("State saved. Shutting down server.")
 
     await serve_and_shutdown()
 
@@ -711,7 +716,7 @@ def start_server_background(host: str = 'localhost', port: int = 9876):
         if _server_controller and _server_controller.thread.is_alive():
             return
 
-        print(f"No server found on {host}:{port}. Starting one in the background...")
+        logger.info(f"No server found on {host}:{port}. Starting one in the background...")
 
         def run():
             asyncio.run(start_and_listen(host, port))
@@ -744,17 +749,17 @@ class ServerThreadController:
 
     def start(self):
         if is_port_open(self.host, self.port):
-            print(f"Server already running on {self.host}:{self.port}")
+            logger.info(f"Server already running on {self.host}:{self.port}")
             return
-        print(f"Starting server in background on {self.host}:{self.port}")
+        logger.info(f"Starting server in background on {self.host}:{self.port}")
         self.thread.start()
         wait_for_port(self.host, self.port)
 
     def stop(self):
-        print("Triggering shutdown...")
+        logger.info("Triggering shutdown...")
         self.shutdown_trigger.set()
         self.thread.join(timeout=5)
-        print("Server stopped.")
+        logger.info("Server stopped.")
 
 
 atexit.register(lambda: _server_controller and _server_controller.stop())
