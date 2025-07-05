@@ -18,7 +18,7 @@
 Currently, Pyred is not available on PyPI. To use it, clone the repository and add it to your Python path.
 
 ```bash
-git clone https://github.com/yaekob/pyred.git
+git clone https://github.com/Jamescog/pyred.git
 cd pyred
 ```
 
