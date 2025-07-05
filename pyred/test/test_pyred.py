@@ -304,6 +304,37 @@ async def test_async_list_negative_indices(async_client):
     assert await async_client.alindex("neglist", -2) == "b"
     assert await async_client.alrange("neglist", -2, -1) == ["b", "c"]
 
+# --- TTL Tests ---
+
+def test_ttl(client):
+    # Nonexistent key
+    assert client.ttl("nope") == -2
+    # Key with no expiry
+    client.set("k", "v")
+    assert client.ttl("k") == -1
+    # Key with expiry
+    client.set("exp", "v", expire=2)
+    ttl_val = client.ttl("exp")
+    assert 0 < ttl_val <= 2
+    # After expiry
+    time.sleep(2.1)
+    assert client.ttl("exp") == -2
+
+@pytest.mark.asyncio
+async def test_async_ttl(async_client):
+    # Nonexistent key
+    assert await async_client.attl("nope") == -2
+    # Key with no expiry
+    await async_client.aset("k", "v")
+    assert await async_client.attl("k") == -1
+    # Key with expiry
+    await async_client.aset("exp", "v", expire=2)
+    ttl_val = await async_client.attl("exp")
+    assert 0 < ttl_val <= 2
+    # After expiry
+    await asyncio.sleep(2.1)
+    assert await async_client.attl("exp") == -2
+
 # --- Concurrency and Other Tests ---
 
 def test_multiple_clients():
