@@ -135,6 +135,9 @@ class PyredSyncClient:
 
     def decrby(self, key: str, amount: int) -> int:
         return self.send_command_sync({"cmd": "decrby", "key": key, "amount": amount}).get("data", 0)
+    
+    def ttl(self, key: str) -> int:
+        return self.send_command_sync({"cmd": "ttl", "key": key}).get("data", -1)
 
     # -- List Commands --
     def lpush(self, key: str, value: Any) -> int:
@@ -308,6 +311,9 @@ class PyredAsyncClient:
 
     async def adecrby(self, key: str, amount: int) -> int:
         return (await self.send_command_async({"cmd": "decrby", "key": key, "amount": amount})).get("data", 0)
+    
+    async def attl(self, key: str) -> int:
+        return (await self.send_command_async({"cmd": "ttl", "key": key})).get("data", -1)
 
     # -- List Commands --
     async def alpush(self, key: str, value: Any) -> int:

@@ -276,6 +276,22 @@ class Store:
         self.expires.pop(key, None)
         return {"status": "ok", "data": int(existed)}
 
+    async def handle_ttl(self, data):
+        """Handles the 'ttl' command to get the time-to-live of a key."""
+        key = data.get("key")
+        if not key:
+            return {"status": "error", "message": "Key is required"}
+        if key not in self.data:
+            return {"status": "ok", "data": -2}
+        expire_time = self.expires.get(key)
+        if expire_time is None:
+            return {"status": "ok", "data": -1}
+        
+        if expire_time < time():
+            self._expire_key(key)
+            return {"status": "ok", "data": -2}
+        return {"status": "ok", "data": max(0, int(expire_time - time()))}
+
     async def handle_incr(self, data):
         """Handles the 'incr' command to increment an integer value by 1."""
         key = data.get("key")
