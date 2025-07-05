@@ -33,7 +33,7 @@ Pyred is incredibly simple to get started with. Just import and instantiate the 
 The synchronous client is perfect for standard Python scripts and web frameworks like Flask or Django.
 
 ```python
-from pyred.sync import Store
+from pyred import Store
 
 # The server starts automatically in the background on first instantiation
 db = Store()
@@ -75,7 +75,7 @@ The asynchronous client is designed for use with `asyncio` and frameworks like F
 
 ```python
 import asyncio
-from pyred.async_ import AsyncStore
+from pyred import AsyncStore
 
 async def main():
     # The server starts automatically in the background
