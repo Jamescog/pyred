@@ -9,8 +9,6 @@ import heapq
 import os
 from pathlib import Path
 import atexit
-import signal
-import sys
 
 
 from .pyred_lock import PyredLock
@@ -99,7 +97,7 @@ class Store:
             def do_write():
                 with open(temp_file, 'w', encoding='utf-8') as f:
                     json.dump(backup_data, f, cls=SetEncoder)
-                print(f"Saving data to {self.backup_file}... {backup_data}")
+                print(f"Saving data to {self.backup_file}...")
                 os.rename(temp_file, self.backup_file)
 
             try:
